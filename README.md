@@ -1,4 +1,4 @@
-# prosper-interview-challenge-chatbot
+# Prosper AI - Interview challenge chatbot
 
 To setup the project, run the following commands in the root directory of the project:
 ```bash
