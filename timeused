@@ -2,6 +2,7 @@ TIME:
 1h30 reading documentation + setting up
 1h30? understanding how to access responses (first commit)
 5' 2nd commit
+1h30 3rd commit. Basic flow done.
 
 
 TODO: 
@@ -9,10 +10,6 @@ audio?
 make chat finish conversation.
 make end the conversation function. Add it to VERIFY BIRTHDAY
 
-
-ContextLogger is a FrameProcessor which should print in the console the
- conversation context after each message. Additionally, it could also save
- the conversation transcript to a file. Feel free to get creative here.
 Suggest a way to evaluate the accuracy of the bot 
 Suggest 3 ways to improve the accuracy of the bot
 

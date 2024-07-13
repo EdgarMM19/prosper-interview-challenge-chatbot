@@ -14,6 +14,10 @@ class ContextLogger(FrameProcessor):
         super().__init__(**kwargs)
         self.current_message = ""
         self.all_messages = None
+        self.session_ended = False
+
+    def did_session_end(self):
+        return self.session_ended
     
     async def process_frame(self, frame, direction):
         if isinstance(frame, LLMFullResponseStartFrame):
@@ -24,9 +28,15 @@ class ContextLogger(FrameProcessor):
         elif isinstance(frame, LLMFullResponseEndFrame):
             print(self.current_message)
             #self.print_not_assistant_or_user(self.all_messages)
+            self.should_session_end()
         else:
             print("Warning: type of context is " + type(frame))
         await super().process_frame(frame, direction)
+    
+    def should_session_end(self):
+          for message in self.all_messages:
+            if message['role'] == "system" and message['content'] == "SESSION ENDED":
+                self.session_ended = True
     def print_not_assistant_or_user(self, messages):
         for message in messages:
             if message['role'] not in ["assistant", "user"]:

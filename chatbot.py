@@ -54,14 +54,14 @@ class Chatbot:
 
         # 4. Context logger
         # TODO: Implement the ContextLogger class
-        context_logger = ContextLogger()
+        self.context_logger = ContextLogger()
 
         # Pipeline creation
         self._pipeline = Pipeline([
             user_context, #add context to frames?
             llm, # text to text
             assistant_context, # add more context
-            context_logger # text to print (or audio)
+            self.context_logger # text to print (or audio)
         ])
 
 
@@ -79,12 +79,14 @@ class Chatbot:
     async def simulate_conversation(self) -> None:
         """Run a conversation with the chatbot."""
         await self.init_session()
-        await self.run_message("")
+        await self.run_message("YOU: ")
         while True:
-            message = input("")
+            message = input("YOU: ")
             if message == "exit":
                 break
             await self.run_message(message)
+            if self.context_logger.did_session_end():
+                break
 
 
 if __name__ == '__main__':

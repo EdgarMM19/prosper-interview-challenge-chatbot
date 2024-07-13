@@ -44,11 +44,14 @@ class IntakeProcessor:
         self._functions = [
             "verify_birthday",
             "make_appointment",
+            "end_session",
         ]
 
         llm.register_function("verify_birthday", self.verify_birthday)
         llm.register_function(
             "make_appointment", self.make_appointment)
+        llm.register_function(
+            "end_session", self.end_session)
 
     async def verify_birthday(self, llm, args):
         print("VERIFYING BIRTHDAY")
@@ -56,18 +59,30 @@ class IntakeProcessor:
         try:
             year, month, day = [int(x) for x in args["birthday"].split("-")]
             if (year + month + day) % 3 == 0:
-                return [{"role": "system", "content": "The user provided a birthday that is not validated. Tell the user that the records were not found in the system and end the conversation."}]
+                self._context.set_tools([{
+                            "type": "function",
+                            "function": {
+                                "name": "end_session",
+                                "description": "Call this before saying goodbay to make sure the session ends.",
+                            }}])
+                return [{"role": "system", "content": "The user provided a birthday that is not validated. Tell the user that the records were not found in the system. Call end_session just before that."}]
             today = datetime.today()
             cutoff_date = today.replace(year=today.year - 18)
             if datetime.strptime(args["birthday"], "%Y-%m-%d") > cutoff_date:
-                return [{"role": "system", "content": "The user is too young (below 18). Tell that to the user and end the conversation."}]
+                self._context.set_tools([{
+                            "type": "function",
+                            "function": {
+                                "name": "end_session",
+                                "description": "Call this before saying goodbay to make sure the session ends.",
+                            }}])
+                return [{"role": "system", "content": "The user is too young (below 18). Tell that to the user. Call end_session just before that."}]
             self._context.set_tools(
                 [
                     {
                         "type": "function",
                         "function": {
                             "name": "make_appointment",
-                            "description": "Once the user has provided a day and hour for an appointment call this function.",
+                            "description": "Once the user has provided a day and hour for an appointment call this function. Make sure that the user is clear in the day and time. If he/she is not clear about it ask again.",
                                 "parameters": {
                                     "type": "object",
                                     "properties": {
@@ -96,15 +111,34 @@ class IntakeProcessor:
         
 
     async def make_appointment(self, llm, args):
-        print("MAKING APP")
-        month, day = [int(x) for x in args["appointment_day"].split("-")]
-        hour, minute = [int(x) for x in args["appointment_hour"].split(":")]
-        if not self.check_possible_apointment(month, day, hour, minute):
-                return [{"role": "system", "content": "The user provided a non-possible appointment, ask the user to book another time."}]
-        self._context.set_tools([])
-        return [{"role": "system", "content": "The user booked an appointment. Remember the user the day and time of the appointment and say good bye."}]
+        try:
+            print("MAKING APP")
+            month, day = [int(x) for x in args["appointment_day"].split("-")]
+            hour, minute = [int(x) for x in args["appointment_hour"].split(":")]
+            if not self.check_possible_apointment(month, day, hour, minute):
+                    return [{"role": "system", "content": "The user provided a non-possible appointment, ask the user to book another time."}]
+            self._context.set_tools([{
+                            "type": "function",
+                            "function": {
+                                "name": "end_session",
+                                "description": "Call this before saying goodbay to make sure the session ends.",
+                            }}])
+            return [{
+                "role": "system",
+                "content": "The user booked an appointment. Remember the user the day (" + str(month) + "/" + str(day) + ") and time (" + str(hour) + ":" + str(minute) + ") of the appointment and say good bye. Call end_session just before that."
+                }]
+        except Exception as e:
+            print("ERROR in make_appointment")
+            print(f"Exception type: {type(e).__name__}")
+            print(f"Exception message: {e}")
+            return []
 
-    
+    async def end_session(self, llm, args):
+        print("END SESS")
+        self._context.set_tools([])
+        return [{"role": "system", "content": "SESSION ENDED"}]
+
+
     def check_possible_apointment(self, month, day, hour, minute):
         if [month, day, hour, minute] in [[7,22,12,0], [7,23,15,0]]:
             return True
@@ -114,14 +148,6 @@ class IntakeProcessor:
         if month > 7 or (month == 7 and day >= 24):
             return True
         return False
-    
-    async def start_visit_reasons(self, llm):
-        print("!!! doing start visit reasons")
-        # move to finish call
-        self._context.set_tools([])
-        self._context.add_message({"role": "system",
-                                   "content": "Now, thank the user and end the conversation."})
-        await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
 
     async def save_data(self, llm, args):
         logger.info(f"!!! Saving data: {args}")
