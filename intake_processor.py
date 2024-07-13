@@ -8,6 +8,7 @@ from pipecat.services.openai import (
     OpenAILLMContextFrame,
     OpenAILLMService
 )
+from datetime import datetime, timedelta
 
 
 class IntakeProcessor:
@@ -42,168 +43,78 @@ class IntakeProcessor:
         # Create an allowlist of functions that the LLM can call
         self._functions = [
             "verify_birthday",
-            "list_prescriptions",
-            "list_allergies",
-            "list_conditions",
-            "start_visit_reasons",
+            "make_appointment",
         ]
 
         llm.register_function("verify_birthday", self.verify_birthday)
         llm.register_function(
-            "list_prescriptions",
-            self.save_data,
-            start_callback=self.list_prescriptions)
-        llm.register_function(
-            "list_allergies",
-            self.save_data,
-            start_callback=self.list_allergies)
-        llm.register_function(
-            "list_conditions",
-            self.save_data,
-            start_callback=self.list_conditions)
-        llm.register_function(
-            "start_visit_reasons",
-            self.save_data,
-            start_callback=self.start_visit_reasons)
+            "make_appointment", self.make_appointment)
 
     async def verify_birthday(self, llm, args):
-        if args["birthday"] == "1983-01-01":
+        print("VERIFYING BIRTHDAY")
+
+        try:
+            year, month, day = [int(x) for x in args["birthday"].split("-")]
+            if (year + month + day) % 3 == 0:
+                return [{"role": "system", "content": "The user provided a birthday that is not validated. Tell the user that the records were not found in the system and end the conversation."}]
+            today = datetime.today()
+            cutoff_date = today.replace(year=today.year - 18)
+            if datetime.strptime(args["birthday"], "%Y-%m-%d") > cutoff_date:
+                return [{"role": "system", "content": "The user is too young (below 18). Tell that to the user and end the conversation."}]
             self._context.set_tools(
                 [
                     {
                         "type": "function",
                         "function": {
-                            "name": "list_prescriptions",
-                            "description": "Once the user has provided a list of their prescription medications, call this function.",
-                            "parameters": {
-                                "type": "object",
-                                "properties": {
-                                    "prescriptions": {
-                                        "type": "array",
-                                        "items": {
-                                            "type": "object",
-                                            "properties": {
-                                                "medication": {
-                                                    "type": "string",
-                                                    "description": "The medication's name",
-                                                },
-                                                "dosage": {
-                                                    "type": "string",
-                                                    "description": "The prescription's dosage",
-                                                },
+                            "name": "make_appointment",
+                            "description": "Once the user has provided a day and hour for an appointment call this function.",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {
+                                            "appointment_day": {
+                                                "type": "string",
+                                                "description": "The user requested day for the appointment. The user can provide it in any format, but convert it to MM-DD format to call this function.",
+                                            },
+                                            "appointment_hour": {
+                                                "type": "string",
+                                                "description": "The user requested hour for the appointment. The user can provide it in any format, but convert it to HH:MM in 24 hour format to call this function.",
                                             },
                                         },
-                                    }},
-                            },
+                                },
                         },
                     }])
-            # We don't need the function call in the context, so just return a new
-            # system message and let the framework re-prompt
-            return [{"role": "system", "content": "Next, thank the user for confirming their identity, then ask the user to list their current prescriptions. Each prescription needs to have a medication name and a dosage. Do not call the list_prescriptions function with any unknown dosages."}]
-        else:
-            # The user provided an incorrect birthday; ask them to try again
-            return [{"role": "system", "content": "The user provided an incorrect birthday. Ask them for their birthday again. When they answer, call the verify_birthday function."}]
+            
+            return [{"role": "system", "content": "Next, thank the user for confirming their birthday, then tell the user that the doctor availability is Monday 7/22 at 12pm Tuesday 7/23 a 3pm and any date and time after Tuesday. Today is "
+                      + today.strftime("%m/%d") +
+                     ". When the user tells his/her prefered time call make_apointment function."}]
 
-    async def list_prescriptions(self, llm):
-        print(f"!!! doing start prescriptions")
-        # Move on to allergies
-        self._context.set_tools(
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "list_allergies",
-                        "description": "Once the user has provided a list of their allergies, call this function.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "allergies": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "string",
-                                                "description": "What the user is allergic to",
-                                            }},
-                                    },
-                                }},
-                        },
-                    },
-                }])
-        self._context.add_message(
-            {
-                "role": "system",
-                "content": "Next, ask the user if they have any allergies. Once they have listed their allergies or confirmed they don't have any, call the list_allergies function."})
-        print(f"!!! about to await llm process frame in start prescrpitions")
-        await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
-        print(f"!!! past await process frame in start prescriptions")
+        except Exception as e:
+            print("ERROR in verify birthday call")
+            print(f"Exception type: {type(e).__name__}")
+            print(f"Exception message: {e}")
+            return []
+        
 
-    async def list_allergies(self, llm):
-        print("!!! doing start allergies")
-        # Move on to conditions
-        self._context.set_tools(
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "list_conditions",
-                        "description": "Once the user has provided a list of their medical conditions, call this function.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "conditions": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "string",
-                                                "description": "The user's medical condition",
-                                            }},
-                                    },
-                                }},
-                        },
-                    },
-                },
-            ])
-        self._context.add_message(
-            {
-                "role": "system",
-                "content": "Now ask the user if they have any medical conditions the doctor should know about. Once they've answered the question, call the list_conditions function."})
-        await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
+    async def make_appointment(self, llm, args):
+        print("MAKING APP")
+        month, day = [int(x) for x in args["appointment_day"].split("-")]
+        hour, minute = [int(x) for x in args["appointment_hour"].split(":")]
+        if not self.check_possible_apointment(month, day, hour, minute):
+                return [{"role": "system", "content": "The user provided a non-possible appointment, ask the user to book another time."}]
+        self._context.set_tools([])
+        return [{"role": "system", "content": "The user booked an appointment. Remember the user the day and time of the appointment and say good bye."}]
 
-    async def list_conditions(self, llm):
-        print("!!! doing start conditions")
-        # Move on to visit reasons
-        self._context.set_tools(
-            [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "start_visit_reasons",
-                        "description": "Once the user has provided a list of the reasons they are visiting a doctor today, call this function.",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "visit_reasons": {
-                                    "type": "array",
-                                    "items": {
-                                        "type": "object",
-                                        "properties": {
-                                            "name": {
-                                                "type": "string",
-                                                "description": "The user's reason for visiting the doctor",
-                                            }},
-                                    },
-                                }},
-                        },
-                    },
-                }])
-        self._context.add_message(
-            {"role": "system", "content": "Finally, ask the user the reason for their doctor visit today. Once they answer, call the start_visit_reasons function."})
-        await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
-
+    
+    def check_possible_apointment(self, month, day, hour, minute):
+        if [month, day, hour, minute] in [[7,22,12,0], [7,23,15,0]]:
+            return True
+        minute = 60*hour + minute
+        if minute < 540 or minute > 1140:
+            return False
+        if month > 7 or (month == 7 and day >= 24):
+            return True
+        return False
+    
     async def start_visit_reasons(self, llm):
         print("!!! doing start visit reasons")
         # move to finish call
@@ -217,3 +128,5 @@ class IntakeProcessor:
         # Since this is supposed to be "async", returning None from the callback
         # will prevent adding anything to context or re-prompting
         return None
+    
+

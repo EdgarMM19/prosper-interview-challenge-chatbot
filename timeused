@@ -1,13 +1,15 @@
 TIME:
 1h30 reading documentation + setting up
 1h30? understanding how to access responses (first commit)
+5' 2nd commit
 
 
 TODO: 
 audio?
 make chat finish conversation.
-Use the code provided in the repo and implement the missing capabilities (context_logger.py and intake_processor.py)
-Adds function calling and states to LLM to fit it to the task
+make end the conversation function. Add it to VERIFY BIRTHDAY
+
+
 ContextLogger is a FrameProcessor which should print in the console the
  conversation context after each message. Additionally, it could also save
  the conversation transcript to a file. Feel free to get creative here.
@@ -15,13 +17,4 @@ Suggest a way to evaluate the accuracy of the bot
 Suggest 3 ways to improve the accuracy of the bot
 
 
-Start presenting as an assistant that will help schedule an appointment for the doctor
-Ask for the user’s full name and date of birth to validate the information. It needs to ensure that it is +18 years to continue.
-To simulate a user validation, sum the digits of the date of birth. If the sum mod 3 is 0, the user is NOT validated and the bot should tell the user that the records were not found in the system and end the conversation.
-Eg. the date of birth 1980-11-01 should not pass the validation as the digit sum is 21 that mod 3 is 0
-If the user passes the validation, tell the user that the doctor’s availability is:
-Monday 7/22 @ 12pm
-Tuesday 7/23 @ 3pm
-Any date and time after Tuesday
-Note: the bot should know the current date “dynamically” so that it can respond accurately to assessments like “in 2 days”
-The user should select an appointment date and time. The date and time are the 2 data points that the bot needs to output.
+The date and time are the 2 data points that the bot needs to output.
