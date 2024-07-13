@@ -79,6 +79,7 @@ class Chatbot:
     async def simulate_conversation(self) -> None:
         """Run a conversation with the chatbot."""
         await self.init_session()
+        await self.run_message("")
         while True:
             message = input("")
             if message == "exit":

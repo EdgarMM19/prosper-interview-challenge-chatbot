@@ -23,7 +23,7 @@ class ContextLogger(FrameProcessor):
             self.all_messages = frame.context.get_messages()
         elif isinstance(frame, LLMFullResponseEndFrame):
             print(self.current_message)
-            self.print_not_assistant_or_user(self.all_messages)
+            #self.print_not_assistant_or_user(self.all_messages)
         else:
             print("Warning: type of context is " + type(frame))
         await super().process_frame(frame, direction)
