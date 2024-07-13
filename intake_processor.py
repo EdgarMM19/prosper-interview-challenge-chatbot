@@ -45,24 +45,24 @@ class IntakeProcessor:
             "list_prescriptions",
             "list_allergies",
             "list_conditions",
-            "list_visit_reasons",
+            "start_visit_reasons",
         ]
 
         llm.register_function("verify_birthday", self.verify_birthday)
         llm.register_function(
             "list_prescriptions",
             self.save_data,
-            start_callback=self.start_prescriptions)
+            start_callback=self.list_prescriptions)
         llm.register_function(
             "list_allergies",
             self.save_data,
-            start_callback=self.start_allergies)
+            start_callback=self.list_allergies)
         llm.register_function(
             "list_conditions",
             self.save_data,
-            start_callback=self.start_conditions)
+            start_callback=self.list_conditions)
         llm.register_function(
-            "list_visit_reasons",
+            "start_visit_reasons",
             self.save_data,
             start_callback=self.start_visit_reasons)
 
@@ -104,7 +104,7 @@ class IntakeProcessor:
             # The user provided an incorrect birthday; ask them to try again
             return [{"role": "system", "content": "The user provided an incorrect birthday. Ask them for their birthday again. When they answer, call the verify_birthday function."}]
 
-    async def start_prescriptions(self, llm):
+    async def list_prescriptions(self, llm):
         print(f"!!! doing start prescriptions")
         # Move on to allergies
         self._context.set_tools(
@@ -139,7 +139,7 @@ class IntakeProcessor:
         await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
         print(f"!!! past await process frame in start prescriptions")
 
-    async def start_allergies(self, llm):
+    async def list_allergies(self, llm):
         print("!!! doing start allergies")
         # Move on to conditions
         self._context.set_tools(
@@ -173,7 +173,7 @@ class IntakeProcessor:
                 "content": "Now ask the user if they have any medical conditions the doctor should know about. Once they've answered the question, call the list_conditions function."})
         await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
 
-    async def start_conditions(self, llm):
+    async def list_conditions(self, llm):
         print("!!! doing start conditions")
         # Move on to visit reasons
         self._context.set_tools(
@@ -181,7 +181,7 @@ class IntakeProcessor:
                 {
                     "type": "function",
                     "function": {
-                        "name": "list_visit_reasons",
+                        "name": "start_visit_reasons",
                         "description": "Once the user has provided a list of the reasons they are visiting a doctor today, call this function.",
                         "parameters": {
                             "type": "object",
@@ -201,7 +201,7 @@ class IntakeProcessor:
                     },
                 }])
         self._context.add_message(
-            {"role": "system", "content": "Finally, ask the user the reason for their doctor visit today. Once they answer, call the list_visit_reasons function."})
+            {"role": "system", "content": "Finally, ask the user the reason for their doctor visit today. Once they answer, call the start_visit_reasons function."})
         await llm.process_frame(OpenAILLMContextFrame(self._context), FrameDirection.DOWNSTREAM)
 
     async def start_visit_reasons(self, llm):

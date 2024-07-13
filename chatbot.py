@@ -21,8 +21,8 @@ from pipecat.services.openai import (
     OpenAILLMService
 )
 
-from challenge.context_logger import ContextLogger
-from challenge.intake_processor import IntakeProcessor
+from context_logger import ContextLogger
+from intake_processor import IntakeProcessor
 
 
 class Chatbot:
@@ -44,11 +44,11 @@ class Chatbot:
             model="gpt-4o",
         )
         # TODO: change this IntakeProcessor for your own states processor
+        # Adds function calling and states to LLM to fit it to the task
         _ = IntakeProcessor(
             context=self._context,
             llm=llm
         )
-
         # 3. Assistant context aggregators
         assistant_context = LLMAssistantContextAggregator(self._context)
 
@@ -58,11 +58,12 @@ class Chatbot:
 
         # Pipeline creation
         self._pipeline = Pipeline([
-            user_context,
-            llm,
-            assistant_context,
-            context_logger
+            user_context, #add context to frames?
+            llm, # text to text
+            assistant_context, # add more context
+            context_logger # text to print (or audio)
         ])
+
 
     async def run_message(self, message_text: str):
         """Run a message through the pipeline and print the context."""
