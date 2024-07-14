@@ -22,7 +22,9 @@ class IntakeProcessor:
         super().__init__(*args, **kwargs)
         self._context: OpenAILLMContext = context
         self._llm = llm
-        print(f"Initializing context from IntakeProcessor")
+        from loguru import logger
+        logger.info("Initializing context from IntakeProcessor")
+
         self._context.add_message({"role": "system", "content": "You are Jessica, a magic assistant created by the best minds of UPC. You are 42 years old. You work at 2066 Crist Drive in Los Altos, California. Your job is to collect important information from the user before their doctor visit. You should help the user and be polite and professional. You're not a medical professional, so you shouldn't provide any advice. Keep your responses short. Your job is to help schedule an appointment for the doctor. Don't make assumptions about what values to plug into functions. Ask for clarification if a user response is ambiguous. Start by introducing yourself. Then, ask the user to confirm their identity by telling you their birthday, including the year. When they answer with their birthday, call the verify_birthday function."})
         self._context.set_tools([
             {
@@ -44,6 +46,7 @@ class IntakeProcessor:
         self._functions = [
             "verify_birthday",
             "make_appointment",
+            "confirm_appointment",
             "end_session",
         ]
 
@@ -51,11 +54,13 @@ class IntakeProcessor:
         llm.register_function(
             "make_appointment", self.make_appointment)
         llm.register_function(
+            "confirm_appointment", self.confirm_appointment)
+        llm.register_function(
             "end_session", self.end_session)
+        self.appointment_day = None
+        self.appointment_hour = None
 
     async def verify_birthday(self, llm, args):
-        print("VERIFYING BIRTHDAY")
-
         try:
             year, month, day = [int(x) for x in args["birthday"].split("-")]
             if (year + month + day) % 3 == 0:
@@ -104,19 +109,45 @@ class IntakeProcessor:
                      ". When the user tells his/her prefered time call make_apointment function."}]
 
         except Exception as e:
-            print("ERROR in verify birthday call")
-            print(f"Exception type: {type(e).__name__}")
-            print(f"Exception message: {e}")
+
+            from loguru import logger
+            logger.exception("ERROR in verify birthday call")
+            logger.exception(f"Exception type: {type(e).__name__}")
+            logger.exception(f"Exception message: {e}")
             return []
         
 
     async def make_appointment(self, llm, args):
         try:
-            print("MAKING APP")
+            from loguru import logger
+            logger.info("MAKING APP")
             month, day = [int(x) for x in args["appointment_day"].split("-")]
             hour, minute = [int(x) for x in args["appointment_hour"].split(":")]
             if not self.check_possible_apointment(month, day, hour, minute):
                     return [{"role": "system", "content": "The user provided a non-possible appointment, ask the user to book another time."}]
+            self._context.set_tools([{
+                            "type": "function",
+                            "function": {
+                                "name": "confirm_appointment",
+                                "description": "Call this when the user confirmed the appointment.",
+                            }}])
+            return [{
+                "role": "system",
+                "content": "The user booked an appointment. Remember the user the day (" + str(month) + "/" + str(day) + ") and time (" + str(hour) + ":" + str(minute) + ") of the appointment and ask the user to re-confirm the appointment booking. Call confirm_appointment when the user confirmed."
+                }]
+        except Exception as e:
+            from loguru import logger
+            logger.exception("ERROR in make_appointment")
+            logger.exception(f"Exception type: {type(e).__name__}")
+            logger.exception(f"Exception message: {e}")
+            return []
+        
+
+    async def confirm_appointment(self, llm, args):
+        try:
+            from loguru import logger
+            logger.info("CONF APP")
+            self.communicate_appointment_to_server(self.appointment_day, self.appointment_hour)
             self._context.set_tools([{
                             "type": "function",
                             "function": {
@@ -125,19 +156,24 @@ class IntakeProcessor:
                             }}])
             return [{
                 "role": "system",
-                "content": "The user booked an appointment. Remember the user the day (" + str(month) + "/" + str(day) + ") and time (" + str(hour) + ":" + str(minute) + ") of the appointment and say good bye. Call end_session just before that."
+                "content": "The user confirmed the appointment. Say good bye. Call end_session just before that."
                 }]
         except Exception as e:
-            print("ERROR in make_appointment")
-            print(f"Exception type: {type(e).__name__}")
-            print(f"Exception message: {e}")
+            from loguru import logger
+            logger.exception("ERROR in confirm_appointment")
+            logger.exception(f"Exception type: {type(e).__name__}")
+            logger.exception(f"Exception message: {e}")
             return []
 
     async def end_session(self, llm, args):
-        print("END SESS")
+        from loguru import logger
+        logger.info("END SESS")
         self._context.set_tools([])
         return [{"role": "system", "content": "SESSION ENDED"}]
 
+
+    def communicate_appointment_to_server(self, day, hour):
+        pass
 
     def check_possible_apointment(self, month, day, hour, minute):
         if [month, day, hour, minute] in [[7,22,12,0], [7,23,15,0]]:
@@ -148,11 +184,3 @@ class IntakeProcessor:
         if month > 7 or (month == 7 and day >= 24):
             return True
         return False
-
-    async def save_data(self, llm, args):
-        logger.info(f"!!! Saving data: {args}")
-        # Since this is supposed to be "async", returning None from the callback
-        # will prevent adding anything to context or re-prompting
-        return None
-    
-

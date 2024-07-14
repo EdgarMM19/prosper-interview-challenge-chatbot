@@ -1,0 +1,4 @@
+2024-07-14 11:57:56.235 | INFO     | intake_processor:__init__:26 - Initializing context from IntakeProcessor
+2024-07-14 11:58:19.606 | INFO     | intake_processor:make_appointment:123 - MAKING APP
+2024-07-14 11:58:24.831 | INFO     | intake_processor:confirm_appointment:149 - CONF APP
+2024-07-14 11:58:25.916 | INFO     | intake_processor:end_session:170 - END SESS

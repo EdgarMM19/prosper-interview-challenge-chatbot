@@ -5,7 +5,7 @@
 """
 
 from pipecat.processors.frame_processor import FrameProcessor
-from pipecat.frames.frames import LLMFullResponseStartFrame, LLMFullResponseEndFrame
+from pipecat.frames.frames import LLMFullResponseStartFrame, LLMFullResponseEndFrame, LLMResponseStartFrame, LLMResponseEndFrame
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 class ContextLogger(FrameProcessor):
 
@@ -28,17 +28,21 @@ class ContextLogger(FrameProcessor):
         elif isinstance(frame, LLMFullResponseEndFrame):
             print(self.current_message)
             #self.print_not_assistant_or_user(self.all_messages)
-            self.should_session_end()
+            self.make_session_end()
+        elif isinstance(frame, LLMResponseStartFrame) or isinstance(frame, LLMResponseEndFrame):
+            pass
         else:
-            print("Warning: type of context is " + type(frame))
+            from loguru import logger
+            logger.warning("Warning: type of context is " + str(type(frame)))
         await super().process_frame(frame, direction)
     
-    def should_session_end(self):
+    def make_session_end(self):
           for message in self.all_messages:
             if message['role'] == "system" and message['content'] == "SESSION ENDED":
                 self.session_ended = True
     def print_not_assistant_or_user(self, messages):
         for message in messages:
             if message['role'] not in ["assistant", "user"]:
-                print(message)
+                from loguru import logger
+                logger.info(message)
     

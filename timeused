@@ -3,15 +3,13 @@ TIME:
 1h30? understanding how to access responses (first commit)
 5' 2nd commit
 1h30 3rd commit. Basic flow done.
+1h 4th commit. End session (had some problems, not very nice solution(?))
+30' 5th commit. Error logger and confirmation for appointment function.
 
 
 TODO: 
 audio?
-make chat finish conversation.
-make end the conversation function. Add it to VERIFY BIRTHDAY
 
 Suggest a way to evaluate the accuracy of the bot 
 Suggest 3 ways to improve the accuracy of the bot
 
-
-The date and time are the 2 data points that the bot needs to output.

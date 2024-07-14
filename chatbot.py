@@ -93,5 +93,8 @@ if __name__ == '__main__':
     import asyncio
     from loguru import logger
     logger.remove()
+    if os.path.exists("logfile.log"):
+        os.remove("logfile.log")
+    logger.add("logfile.log", level="INFO")
     tester = Chatbot()
     asyncio.run(tester.simulate_conversation())
