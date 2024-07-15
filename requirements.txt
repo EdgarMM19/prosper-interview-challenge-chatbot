@@ -1,1 +1,4 @@
 pipecat-ai[daily,openai,silero]
+datetime
+pyaudio
+elevenlabs

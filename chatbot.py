@@ -18,8 +18,10 @@ from pipecat.processors.frame_processor import FrameDirection
 from pipecat.services.openai import (
     OpenAILLMContext,
     OpenAILLMContextFrame,
-    OpenAILLMService
+    OpenAILLMService,
 )
+from pipecat.transports.base_transport import TransportParams
+from pipecat.transports.local.audio import LocalAudioTransport
 
 from context_logger import ContextLogger
 from intake_processor import IntakeProcessor
@@ -29,6 +31,7 @@ class Chatbot:
 
     def __init__(self):
         self._context = OpenAILLMContext(messages=[])
+        self._lock = asyncio.Lock()
 
     async def init_session(self):
         """Initialize the session with the pipeline."""
@@ -56,12 +59,13 @@ class Chatbot:
         # TODO: Implement the ContextLogger class
         self.context_logger = ContextLogger()
 
+
         # Pipeline creation
         self._pipeline = Pipeline([
             user_context,
             llm, 
             assistant_context, 
-            self.context_logger
+            self.context_logger,
         ])
 
 
@@ -81,12 +85,13 @@ class Chatbot:
         await self.init_session()
         await self.run_message("YOU: ")
         while True:
-            message = input("YOU: ")
-            if message == "exit":
-                break
-            await self.run_message(message)
-            if self.context_logger.did_session_end():
-                break
+            async with self._lock:
+                message = input("YOU: ")
+                if message == "exit":
+                    break
+                await self.run_message(message)
+                if self.context_logger.did_session_end():
+                    break
 
 
 if __name__ == '__main__':
