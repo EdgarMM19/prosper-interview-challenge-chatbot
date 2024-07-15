@@ -5,7 +5,7 @@
 """
 
 from pipecat.processors.frame_processor import FrameProcessor
-from pipecat.frames.frames import LLMFullResponseStartFrame, LLMFullResponseEndFrame, LLMResponseStartFrame, LLMResponseEndFrame
+from pipecat.frames.frames import LLMFullResponseStartFrame, LLMFullResponseEndFrame, LLMResponseStartFrame, LLMResponseEndFrame, EndFrame
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 class ContextLogger(FrameProcessor):
 
@@ -26,8 +26,9 @@ class ContextLogger(FrameProcessor):
             self.current_message += frame.context.get_messages()[-1]['content'][1:]
             self.all_messages = frame.context.get_messages()
         elif isinstance(frame, LLMFullResponseEndFrame):
-            print(self.current_message)
-            #self.print_not_assistant_or_user(self.all_messages)
+            self.communicate_to_user(self.current_message)
+            self.print_not_assistant_or_user(self.all_messages)
+        elif isinstance(frame, EndFrame):
             self.make_session_end()
         elif isinstance(frame, LLMResponseStartFrame) or isinstance(frame, LLMResponseEndFrame):
             pass
@@ -35,11 +36,13 @@ class ContextLogger(FrameProcessor):
             from loguru import logger
             logger.warning("Warning: type of context is " + str(type(frame)))
         await super().process_frame(frame, direction)
-    
+
+    def communicate_to_user(self, msg):
+        print(msg)
+
     def make_session_end(self):
-          for message in self.all_messages:
-            if message['role'] == "system" and message['content'] == "SESSION ENDED":
-                self.session_ended = True
+        self.session_ended = True
+
     def print_not_assistant_or_user(self, messages):
         for message in messages:
             if message['role'] not in ["assistant", "user"]:

@@ -6,8 +6,8 @@ TIME:
 1h 4th commit. End session (had some problems, not very nice solution(?))
 30' 5th commit. Error logger and confirmation for appointment function.
 
-
 TODO: 
+pass frame in context logger to intake processor to communicate
 audio?
 
 Suggest a way to evaluate the accuracy of the bot 

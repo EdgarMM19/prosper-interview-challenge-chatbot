@@ -58,10 +58,10 @@ class Chatbot:
 
         # Pipeline creation
         self._pipeline = Pipeline([
-            user_context, #add context to frames?
-            llm, # text to text
-            assistant_context, # add more context
-            self.context_logger # text to print (or audio)
+            user_context,
+            llm, 
+            assistant_context, 
+            self.context_logger
         ])
 
 

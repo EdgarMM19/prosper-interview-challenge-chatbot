@@ -3,12 +3,13 @@ Stateful Agent Processor for the Intake Example in: https://github.com/pipecat-a
 """
 from loguru import logger
 from pipecat.processors.frame_processor import FrameDirection
+from pipecat.frames.frames import EndFrame
 from pipecat.services.openai import (
     OpenAILLMContext,
     OpenAILLMContextFrame,
     OpenAILLMService
 )
-from datetime import datetime, timedelta
+from datetime import datetime
 
 
 class IntakeProcessor:
@@ -61,6 +62,8 @@ class IntakeProcessor:
         self.appointment_hour = None
 
     async def verify_birthday(self, llm, args):
+        from loguru import logger
+        logger.info("VER BIRTH")
         try:
             year, month, day = [int(x) for x in args["birthday"].split("-")]
             if (year + month + day) % 3 == 0:
@@ -169,7 +172,8 @@ class IntakeProcessor:
         from loguru import logger
         logger.info("END SESS")
         self._context.set_tools([])
-        return [{"role": "system", "content": "SESSION ENDED"}]
+        await self._llm.push_frame(EndFrame())
+        return [{"role": "system", "content": "Always say goodbye before exiting."}]
 
 
     def communicate_appointment_to_server(self, day, hour):
