@@ -2,10 +2,6 @@
  ChatbotTester enables to simulate a conversation with the chatbot through
  text channel in the console. The user can type a message and the chatbot
  will respond with a message.
-
-TODO:
-    1. Change the IntakeProcessor for your own states processor.
-    2. Implement the ContextLogger class.
 """
 import os
 
@@ -31,7 +27,6 @@ class Chatbot:
 
     def __init__(self):
         self._context = OpenAILLMContext(messages=[])
-        self._lock = asyncio.Lock()
 
     async def init_session(self):
         """Initialize the session with the pipeline."""
@@ -56,7 +51,6 @@ class Chatbot:
         assistant_context = LLMAssistantContextAggregator(self._context)
 
         # 4. Context logger
-        # TODO: Implement the ContextLogger class
         self.context_logger = ContextLogger()
 
 
@@ -85,13 +79,12 @@ class Chatbot:
         await self.init_session()
         await self.run_message("YOU: ")
         while True:
-            async with self._lock:
-                message = input("YOU: ")
-                if message == "exit":
-                    break
-                await self.run_message(message)
-                if self.context_logger.did_session_end():
-                    break
+            message = input("YOU: ")
+            if message == "exit":
+                break
+            await self.run_message(message)
+            if self.context_logger.did_session_end():
+                break
 
 
 if __name__ == '__main__':

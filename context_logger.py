@@ -10,10 +10,8 @@ from pipecat.frames.frames import (
                                 LLMFullResponseEndFrame,
                                 LLMResponseStartFrame,
                                 LLMResponseEndFrame,
-                                EndFrame,
-                                TextFrame,
-                                BotSpeakingFrame
                                 )
+from intake_processor import OwnEndFrame
 from pipecat.processors.aggregators.openai_llm_context import OpenAILLMContextFrame
 from elevenlabs.client import ElevenLabs
 from elevenlabs import play
@@ -21,7 +19,7 @@ from elevenlabs import play
 class TalkingMachine():
     def __init__(self):
         self.client = ElevenLabs(
-            api_key=  os.getenv("ELEVENLABS_API_KEY")
+            api_key=os.getenv("ELEVENLABS_API_KEY")
         )
 
     def talk(self, msg):
@@ -35,7 +33,6 @@ class TalkingMachine():
 
 class ContextLogger(FrameProcessor):
 
-    # TODO: Implement the ContextLogger class
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.current_message = ""
@@ -55,19 +52,19 @@ class ContextLogger(FrameProcessor):
         elif isinstance(frame, LLMFullResponseEndFrame):
             await self.communicate_to_user(self.current_message)
             self.print_not_assistant_or_user(self.all_messages)
-        elif isinstance(frame, EndFrame):
+        elif isinstance(frame, OwnEndFrame):
             self.make_session_end()
-        elif isinstance(frame, LLMResponseStartFrame) or isinstance(frame, LLMResponseEndFrame) or \
-            isinstance(frame, TextFrame) or isinstance(frame, BotSpeakingFrame):
+        elif isinstance(frame, LLMResponseStartFrame) or isinstance(frame, LLMResponseEndFrame):
             pass
         else:
             from loguru import logger
-            logger.warning("Warning: type of context is " + str(type(frame)))
-        await super().process_frame(frame, direction)
+            logger.warning("Warning: type of frame is " + str(type(frame)))
+            await super().process_frame(frame, direction)
 
     async def communicate_to_user(self, msg):
         print(msg)
-        self.talker.talk(msg)
+        #self.talker.talk(msg)
+
     def make_session_end(self):
         self.session_ended = True
 

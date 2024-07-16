@@ -1,9 +1,9 @@
 """
-Stateful Agent Processor for the Intake Example in: https://github.com/pipecat-ai/pipecat/blob/6071920c45a95089707ad40570f4d81f01d70e99/examples/patient-intake
+Stateful Agent Processor for the appointment assistant
 """
 from loguru import logger
 from pipecat.processors.frame_processor import FrameDirection
-from pipecat.frames.frames import EndFrame
+from pipecat.frames.frames import ControlFrame
 from pipecat.services.openai import (
     OpenAILLMContext,
     OpenAILLMContextFrame,
@@ -11,6 +11,8 @@ from pipecat.services.openai import (
 )
 from datetime import datetime
 
+class OwnEndFrame(ControlFrame):
+    pass
 
 class IntakeProcessor:
     def __init__(
@@ -112,7 +114,6 @@ class IntakeProcessor:
                      ". When the user tells his/her prefered time call make_apointment function."}]
 
         except Exception as e:
-
             from loguru import logger
             logger.exception("ERROR in verify birthday call")
             logger.exception(f"Exception type: {type(e).__name__}")
@@ -133,11 +134,23 @@ class IntakeProcessor:
                             "function": {
                                 "name": "confirm_appointment",
                                 "description": "Call this when the user confirmed the appointment.",
+                                "parameters": {
+                                    "type": "object",
+                                    "properties": {
+                                            "confirmed": {
+                                                "type": "boolean",
+                                                "description": "True if confirmed, False if does not work for user.",
+                                            },
+                                        },
+                                },
                             }}])
+            self.appointment_day = args["appointment_day"]
+            self.appointment_hour = args["appointment_hour"]
             return [{
                 "role": "system",
-                "content": "The user booked an appointment. Remember the user the day (" + str(month) + "/" + str(day) + ") and time (" + str(hour) + ":" + str(minute) + ") of the appointment and ask the user to re-confirm the appointment booking. Call confirm_appointment when the user confirmed."
+                "content": "The user booked an appointment. Remember the user the day (" + str(month) + "/" + str(day) + ") and time (" + str(hour) + ":" + str(minute) + ") of the appointment and ask the user to re-confirm the appointment booking. Call confirm_appointment when the user confirmed or denied."
                 }]
+        
         except Exception as e:
             from loguru import logger
             logger.exception("ERROR in make_appointment")
@@ -150,7 +163,8 @@ class IntakeProcessor:
         try:
             from loguru import logger
             logger.info("CONF APP")
-            self.communicate_appointment_to_server(self.appointment_day, self.appointment_hour)
+            if args["confirmed"]:
+                self.communicate_appointment_to_server(self.appointment_day, self.appointment_hour)
             self._context.set_tools([{
                             "type": "function",
                             "function": {
@@ -161,6 +175,7 @@ class IntakeProcessor:
                 "role": "system",
                 "content": "The user confirmed the appointment. Say good bye. Call end_session just before that."
                 }]
+        
         except Exception as e:
             from loguru import logger
             logger.exception("ERROR in confirm_appointment")
@@ -172,12 +187,14 @@ class IntakeProcessor:
         from loguru import logger
         logger.info("END SESS")
         self._context.set_tools([])
-        await self._llm.push_frame(EndFrame())
+        await self._llm.push_frame(OwnEndFrame())
         return [{"role": "system", "content": "Always say goodbye before exiting."}]
 
 
     def communicate_appointment_to_server(self, day, hour):
-        pass
+        from loguru import logger
+        logger.info("booked " + day + " " + hour)
+        
 
     def check_possible_apointment(self, month, day, hour, minute):
         if [month, day, hour, minute] in [[7,22,12,0], [7,23,15,0]]:
