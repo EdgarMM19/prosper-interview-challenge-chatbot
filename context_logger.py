@@ -63,7 +63,7 @@ class ContextLogger(FrameProcessor):
 
     async def communicate_to_user(self, msg):
         print(msg)
-        #self.talker.talk(msg)
+        self.talker.talk(msg)
 
     def make_session_end(self):
         self.session_ended = True
