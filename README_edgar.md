@@ -4,12 +4,19 @@ To run make what is in the original README.md, add openai and elevenlabs keys an
 
 # TIME
 1h30 reading documentation + setting up
+
 1h30 understanding how to access responses (first commit)
+
 5' 2nd commit
+
 1h30 3rd commit. Basic flow done.
+
 1h 4th commit. End session (had some problems, not very nice solution(?), fixed in two commits below)
+
 30' 5th commit. Error logger and confirmation for appointment function.
+
 20' 6th commit. End session with frames.
+
 1h30 7th commit. Voice. Tried to do with pipecat but did not succeed. Finished using elevenlabs api directly (5 minutes lol). A bit laggy.
 
 About ~7 hours of coding. ~2 hours of reading either not logged in previous times or for the questions below. ~1 hour wrapping things up. Some time thinking about the problem without the computer in front or testing the chat a bit.
